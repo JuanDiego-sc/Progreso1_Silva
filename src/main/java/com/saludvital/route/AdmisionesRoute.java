@@ -28,11 +28,6 @@ public class AdmisionesRoute extends RouteBuilder {
             .log("Archivo movido a error por excepcion inesperada: ${header.CamelFileName}");
 
         /*
-         * RUTA PRINCIPAL
-         *
-         * Monitorea data/input cada 5 segundos buscando archivos .csv.
-         *
-         * Opciones relevantes del endpoint file:
          *   delete=true          - elimina el archivo de input tras procesarlo (evita reprocesamiento)
          *   readLock=changed     - espera a que el archivo deje de crecer antes de leerlo
          *   readLockCheckInterval/readLockMinAge - parametros de estabilidad del readLock
@@ -62,7 +57,7 @@ public class AdmisionesRoute extends RouteBuilder {
 
             .choice()
 
-                // RAMA VALIDA: copia a output y archive
+                // RAMA VALIDA
                 .when(exchangeProperty("valid").isEqualTo(true))
                     .log("[PROCESANDO] Archivo valido: ${exchangeProperty.originalFileName}")
                     .multicast()
@@ -74,7 +69,7 @@ public class AdmisionesRoute extends RouteBuilder {
                     // endChoice() devuelve el contexto al ChoiceDefinition tras el multicast anidado
                     .endChoice()
 
-                // RAMA INVALIDA: copia a error y archive para trazabilidad
+                // RAMA INVALIDA
                 .otherwise()
                     .log("[RECHAZADO] Archivo: ${exchangeProperty.originalFileName} " +
                          "| Motivo: ${exchangeProperty.failReason}")
