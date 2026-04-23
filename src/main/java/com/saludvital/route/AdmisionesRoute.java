@@ -66,7 +66,6 @@ public class AdmisionesRoute extends RouteBuilder {
                     .end()
                     .log("[EXITO] Output: ${exchangeProperty.originalFileName} " +
                          "| Archive: ${exchangeProperty.archivedFileName}")
-                    // endChoice() devuelve el contexto al ChoiceDefinition tras el multicast anidado
                     .endChoice()
 
                 // RAMA INVALIDA
