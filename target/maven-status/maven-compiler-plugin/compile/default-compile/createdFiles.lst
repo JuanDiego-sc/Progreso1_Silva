@@ -1,1 +1,4 @@
+com/saludvital/route/AdmisionesRoute.class
+com/saludvital/Main.class
+com/saludvital/processor/CsvValidationProcessor.class
 FileTransferRoute.class

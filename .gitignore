@@ -1,0 +1,73 @@
+# ─── Maven build output ───────────────────────────────────────────────────────
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# ─── Datos en tiempo de ejecución ─────────────────────────────────────────────
+# Carpetas de datos procesados (se generan al ejecutar la aplicación)
+data/output/
+data/archive/
+data/error/
+# Los CSVs de prueba en input SÍ se versionan (son fixtures del proyecto)
+!data/input/
+
+# Carpeta output raíz (legado del proyecto inicial)
+output/
+
+# Logs generados por logback
+logs/
+
+# ─── IDEs ──────────────────────────────────────────────────────────────────────
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+*.ipr
+out/
+
+# VS Code
+.vscode/
+!.vscode/extensions.json
+
+# Eclipse / STS
+.classpath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+
+# NetBeans
+nbproject/
+nbbuild/
+nbdist/
+nb-configuration.xml
+
+# ─── Sistema operativo ─────────────────────────────────────────────────────────
+# Linux
+*~
+.nfs*
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# ─── Java ─────────────────────────────────────────────────────────────────────
+*.class
+*.jar
+*.war
+*.ear
+*.nar
+hs_err_pid*
+replay_pid*
+
+# Excepciones: los JARs de lib/ se versionan (dependencias locales del proyecto)
+!lib/*.jar
+/.claude
+/docs
