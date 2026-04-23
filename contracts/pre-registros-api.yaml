@@ -1,0 +1,347 @@
+openapi: 3.0.3
+
+info:
+  title: SaludVital – API de Pre-registros
+  description: >
+    API REST para la consulta y gestión de pre-registros de pacientes del
+    Sistema de Admisiones de la Clínica SaludVital. Esta API representa la
+    evolución futura del proceso de integración actual basado en File Transfer,
+    permitiendo consultas en tiempo real con mejor trazabilidad y seguridad.
+  version: 1.0.0
+  contact:
+    name: TI SaludVital
+
+servers:
+  - url: http://localhost:8080/api/v1
+    description: Servidor de desarrollo local
+  - url: https://api.saludvital.ec/v1
+    description: Servidor de producción
+
+tags:
+  - name: pre-registros
+    description: Operaciones sobre pre-registros de pacientes
+
+paths:
+
+  /pre-registros:
+
+    get:
+      tags: [pre-registros]
+      summary: Listar pre-registros
+      description: >
+        Retorna la lista paginada de pre-registros. Por defecto devuelve los
+        pre-registros del día actual. Se puede filtrar por fecha y por estado.
+      operationId: listarPreRegistros
+      parameters:
+        - name: fecha
+          in: query
+          description: Filtrar por fecha de cita en formato YYYY-MM-DD. Por defecto, fecha actual.
+          required: false
+          schema:
+            type: string
+            format: date
+            example: "2026-04-22"
+        - name: estado
+          in: query
+          description: Filtrar por estado de procesamiento del pre-registro.
+          required: false
+          schema:
+            type: string
+            enum: [PENDIENTE, PROCESADO, RECHAZADO]
+            example: PENDIENTE
+        - name: pagina
+          in: query
+          description: Número de página (base 1).
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: por_pagina
+          in: query
+          description: Cantidad de registros por página.
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 10
+      responses:
+        "200":
+          description: Lista de pre-registros obtenida exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreRegistroListResponse'
+              example:
+                total: 25
+                pagina: 1
+                por_pagina: 10
+                datos:
+                  - patient_id: "PAC-2026-00123"
+                    full_name: "Maria Lopez"
+                    appointment_date: "2026-04-22"
+                    insurance_code: "IESS"
+                    estado: "PENDIENTE"
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "500":
+          $ref: '#/components/responses/InternalError'
+
+    post:
+      tags: [pre-registros]
+      summary: Crear pre-registro
+      description: >
+        Crea un nuevo pre-registro de paciente. El sistema valida el formato
+        de los datos antes de persistir. Retorna el recurso creado con su
+        estado inicial PENDIENTE.
+      operationId: crearPreRegistro
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PreRegistroRequest'
+            example:
+              patient_id: "PAC-2026-00124"
+              full_name: "Carlos Ruiz"
+              appointment_date: "2026-04-22"
+              insurance_code: "PRIVADO"
+      responses:
+        "201":
+          description: Pre-registro creado exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreRegistroResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "422":
+          $ref: '#/components/responses/UnprocessableEntity'
+        "500":
+          $ref: '#/components/responses/InternalError'
+
+  /pre-registros/{patient_id}:
+
+    get:
+      tags: [pre-registros]
+      summary: Obtener pre-registro por ID
+      description: Retorna el detalle completo de un pre-registro específico.
+      operationId: obtenerPreRegistro
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          description: Identificador único del paciente pre-registrado.
+          schema:
+            type: string
+            example: "PAC-2026-00123"
+      responses:
+        "200":
+          description: Pre-registro encontrado.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreRegistroResponse'
+              example:
+                patient_id: "PAC-2026-00123"
+                full_name: "Maria Lopez"
+                appointment_date: "2026-04-22"
+                insurance_code: "IESS"
+                estado: "PENDIENTE"
+                fecha_registro: "2026-04-22T09:15:00Z"
+                procesado_por: null
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "500":
+          $ref: '#/components/responses/InternalError'
+
+  /pre-registros/{patient_id}/estado:
+
+    patch:
+      tags: [pre-registros]
+      summary: Actualizar estado de un pre-registro
+      description: >
+        Permite al Sistema de Facturación actualizar el estado de procesamiento
+        de un pre-registro. Es el mecanismo de respuesta que cierra el ciclo
+        de comunicación bidireccional con Admisiones.
+      operationId: actualizarEstadoPreRegistro
+      parameters:
+        - name: patient_id
+          in: path
+          required: true
+          schema:
+            type: string
+            example: "PAC-2026-00123"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EstadoUpdateRequest'
+            example:
+              estado: "PROCESADO"
+              procesado_por: "facturacion-service"
+              observacion: "Pre-registro aceptado y factura generada."
+      responses:
+        "200":
+          description: Estado actualizado exitosamente.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PreRegistroResponse'
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "500":
+          $ref: '#/components/responses/InternalError'
+
+components:
+
+  schemas:
+
+    PreRegistroRequest:
+      type: object
+      required: [patient_id, full_name, appointment_date, insurance_code]
+      properties:
+        patient_id:
+          type: string
+          description: Identificador único del paciente.
+          example: "PAC-2026-00123"
+        full_name:
+          type: string
+          description: Nombre completo del paciente.
+          minLength: 2
+          maxLength: 200
+          example: "Maria Lopez"
+        appointment_date:
+          type: string
+          format: date
+          description: Fecha de la cita médica en formato YYYY-MM-DD.
+          example: "2026-04-22"
+        insurance_code:
+          type: string
+          description: Código del seguro médico del paciente.
+          enum: [IESS, PRIVADO, NINGUNO]
+          example: "IESS"
+
+    PreRegistroResponse:
+      allOf:
+        - $ref: '#/components/schemas/PreRegistroRequest'
+        - type: object
+          properties:
+            estado:
+              type: string
+              enum: [PENDIENTE, PROCESADO, RECHAZADO]
+              description: Estado actual del procesamiento del pre-registro.
+              example: "PENDIENTE"
+            fecha_registro:
+              type: string
+              format: date-time
+              description: Timestamp de creación del pre-registro en UTC.
+              example: "2026-04-22T09:15:00Z"
+            procesado_por:
+              type: string
+              nullable: true
+              description: Identificador del servicio que actualizó el estado.
+              example: null
+
+    PreRegistroListResponse:
+      type: object
+      properties:
+        total:
+          type: integer
+          description: Total de registros que coinciden con los filtros aplicados.
+          example: 25
+        pagina:
+          type: integer
+          example: 1
+        por_pagina:
+          type: integer
+          example: 10
+        datos:
+          type: array
+          items:
+            $ref: '#/components/schemas/PreRegistroResponse'
+
+    EstadoUpdateRequest:
+      type: object
+      required: [estado]
+      properties:
+        estado:
+          type: string
+          enum: [PROCESADO, RECHAZADO]
+          description: Nuevo estado. Solo se permite PROCESADO o RECHAZADO en una actualización.
+          example: "PROCESADO"
+        procesado_por:
+          type: string
+          description: Identificador del servicio o usuario que realiza la actualización.
+          example: "facturacion-service"
+        observacion:
+          type: string
+          description: Observación opcional sobre el resultado del procesamiento.
+          example: "Pre-registro aceptado y factura generada."
+
+    ErrorResponse:
+      type: object
+      required: [codigo, mensaje, timestamp]
+      properties:
+        codigo:
+          type: string
+          description: Código de error interno de la aplicación.
+          example: "VALIDACION_FALLIDA"
+        mensaje:
+          type: string
+          description: Descripción legible del error.
+          example: "El campo appointment_date no cumple el formato YYYY-MM-DD."
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-04-22T09:20:00Z"
+
+  responses:
+
+    BadRequest:
+      description: La solicitud contiene datos inválidos o campos incorrectos.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            codigo: "VALIDACION_FALLIDA"
+            mensaje: "El campo insurance_code debe ser IESS, PRIVADO o NINGUNO."
+            timestamp: "2026-04-22T09:20:00Z"
+
+    NotFound:
+      description: El recurso solicitado no existe.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            codigo: "RECURSO_NO_ENCONTRADO"
+            mensaje: "No se encontró un pre-registro con patient_id PAC-2026-99999."
+            timestamp: "2026-04-22T09:20:00Z"
+
+    UnprocessableEntity:
+      description: El body es JSON válido pero contiene datos semánticamente incorrectos.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            codigo: "FECHA_EN_PASADO"
+            mensaje: "La appointment_date no puede ser una fecha anterior a hoy."
+            timestamp: "2026-04-22T09:20:00Z"
+
+    InternalError:
+      description: Error interno del servidor.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorResponse'
+          example:
+            codigo: "ERROR_INTERNO"
+            mensaje: "Ocurrió un error inesperado. Contacte al administrador."
+            timestamp: "2026-04-22T09:20:00Z"
