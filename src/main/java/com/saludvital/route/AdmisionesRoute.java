@@ -15,11 +15,6 @@ public class AdmisionesRoute extends RouteBuilder {
     @Override
     public void configure() {
 
-        /*
-         * Manejo global de excepciones no controladas.
-         * Cualquier excepcion inesperada dentro de la ruta mueve el archivo
-         * a data/error y registra el motivo antes de marcar el exchange como manejado.
-         */
         onException(Exception.class)
             .handled(true)
             .process(exchange -> {
@@ -51,8 +46,6 @@ public class AdmisionesRoute extends RouteBuilder {
              "&readLockCheckInterval=1000" +
              "&readLockMinAge=500")
             .routeId("saludvital-admisiones-route")
-
-            // Guardar nombre original y generar nombre con timestamp para archivado
             .process(exchange -> {
                 String originalName = exchange.getIn().getHeader("CamelFileName", String.class);
                 exchange.setProperty("originalFileName", originalName);

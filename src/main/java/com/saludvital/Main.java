@@ -6,7 +6,6 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
 
-        // Nombre completamente calificado para evitar conflicto con este mismo clase
         org.apache.camel.main.Main camelMain = new org.apache.camel.main.Main();
         camelMain.configure().addRoutesBuilder(new AdmisionesRoute());
 
